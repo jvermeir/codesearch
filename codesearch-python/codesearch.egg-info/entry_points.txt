@@ -1,0 +1,2 @@
+[console_scripts]
+codesearch = codesearch.cli:main

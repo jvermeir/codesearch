@@ -1,0 +1,13 @@
+pyproject.toml
+codesearch/__init__.py
+codesearch/cli.py
+codesearch/embeddings.py
+codesearch/indexer.py
+codesearch/searcher.py
+codesearch/store.py
+codesearch.egg-info/PKG-INFO
+codesearch.egg-info/SOURCES.txt
+codesearch.egg-info/dependency_links.txt
+codesearch.egg-info/entry_points.txt
+codesearch.egg-info/requires.txt
+codesearch.egg-info/top_level.txt
