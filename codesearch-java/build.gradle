@@ -1,0 +1,47 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+group = 'dev.codesearch'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.apache.lucene:lucene-core:9.11.0'
+    implementation 'org.apache.lucene:lucene-analysis-common:9.11.0'
+    implementation 'org.apache.lucene:lucene-queryparser:9.11.0'
+    implementation 'info.picocli:picocli:4.7.6'
+    annotationProcessor 'info.picocli:picocli-codegen:4.7.6'
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+    runtimeOnly 'org.slf4j:slf4j-simple:2.0.13'
+}
+
+application {
+    mainClass = 'dev.codesearch.cli.Main'
+    applicationDefaultJvmArgs = ['--add-modules', 'jdk.incubator.vector']
+}
+
+compileJava {
+    options.compilerArgs += ['-Aproject=dev.codesearch/codesearch-java']
+}
+
+shadowJar {
+    archiveBaseName = 'codesearch'
+    archiveClassifier = ''
+    archiveVersion = ''
+    mergeServiceFiles()
+    manifest {
+        attributes 'Multi-Release': 'true'
+    }
+}

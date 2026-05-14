@@ -1,0 +1,24 @@
+[sonar]
+project_key = "qa-loop"
+host_url    = "http://localhost:9000"
+token       = ""        # Sonar token with permissions to read project data; e.g. "admin" user token
+project_dir = "."       # directory to analyse; relative to qa-loop/, or absolute
+# Extra args forwarded verbatim to sonar-scanner, e.g. ["-Dsonar.verbose=true"]
+scanner_args = []
+
+[thresholds]
+min_coverage_pct = 80.0   # BREACH if coverage falls below this
+max_warnings     = 0      # BREACH if Sonar issue count exceeds this
+
+[slack]
+webhook_url = ""          # Leave empty to disable Slack notifications
+
+[schedule]
+# For reference only — actual scheduling is managed via crontab / install-cron.sh
+cron_expression = "0 * * * *"
+
+[ollama]
+# Settings for bin/auto-fix.py. Override model/iterations with CLI flags.
+host           = "http://localhost:11434"
+model          = "qwen2.5-coder"   # any model available in your local Ollama instance
+max_iterations = 5
