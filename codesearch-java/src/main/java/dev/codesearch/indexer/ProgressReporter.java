@@ -85,26 +85,35 @@ public class ProgressReporter {
         int sk = skippedUnchanged.get() + skippedEmpty.get();
         int done = ix + sk;
 
-        String rate = done > 0 && elapsed > 0
-            ? String.format("%.0f f/s", done * 1000.0 / elapsed) : "---";
-
-        String line;
-        if (!scanDone) {
-            line = String.format("Scanning: {scanned,number,integer} found | Indexed: {ix,number,integer} | Skipped: {sk,number,integer} | {rate}",
-                scanned.get(), ix, sk, rate);
-        } else {
-            int pct = total > 0 ? 100 * done / total : 100;
-            String eta = done > 0 && elapsed > 0 && total > done
-                ? formatSeconds((long) ((elapsed / (double) done) * (total - done) / 1000)) : "0s";
-            line = String.format("[{done,number,integer}/{total,number,integer} | {pct,number,integer}%] {rate}  ETA {eta}",
-                done, total, pct, rate, eta);
-        }
+        String rate = calculateRate(done, elapsed);
+        String line = scanDone
+            ? buildCompletionStageLine(done, rate)
+            : buildScanningStageLine(ix, sk, rate);
 
         if (tty) {
             logger.info("\r%-80s", line);
         } else {
             logger.info(line);
         }
+    }
+
+    private String calculateRate(int done, long elapsed) {
+        return done > 0 && elapsed > 0
+            ? String.format("%.0f f/s", done * 1000.0 / elapsed) : "---";
+    }
+
+    private String buildScanningStageLine(int ix, int sk, String rate) {
+        return String.format("Scanning: {scanned,number,integer} found | Indexed: {ix,number,integer} | Skipped: {sk,number,integer} | {rate}",
+            scanned.get(), ix, sk, rate);
+    }
+
+    private String buildCompletionStageLine(int done, String rate) {
+        long elapsed = System.currentTimeMillis() - startMs;
+        int pct = total > 0 ? 100 * done / total : 100;
+        String eta = done > 0 && elapsed > 0 && total > done
+            ? formatSeconds((long) ((elapsed / (double) done) * (total - done) / 1000)) : "0s";
+        return String.format("[{done,number,integer}/{total,number,integer} | {pct,number,integer}%] {rate}  ETA {eta}",
+            done, total, pct, rate, eta);
     }
 
     private static String formatSeconds(long secs) {

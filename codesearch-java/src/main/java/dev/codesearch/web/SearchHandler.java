@@ -56,6 +56,13 @@ public class SearchHandler implements HttpHandler {
 
     private String buildPage(String query) throws IOException {
         StringBuilder sb = new StringBuilder();
+        buildHtmlHeader(sb, query);
+        buildResultsSection(sb, query);
+        sb.append("</body></html>");
+        return sb.toString();
+    }
+
+    private void buildHtmlHeader(StringBuilder sb, String query) {
         sb.append("""
             <!doctype html>
             <html lang="en">
@@ -86,7 +93,9 @@ public class SearchHandler implements HttpHandler {
               <button type="submit">Search</button>
             </form>
             """);
+    }
 
+    private void buildResultsSection(StringBuilder sb, String query) throws IOException {
         if (!query.isBlank()) {
             List<SearchResult> candidates = FuzzySearcher.search(store, query, top * 5, threshold, docWeight);
             List<SearchResult> results = ResultMerger.merge(candidates, top, maxPerFile);
@@ -107,9 +116,6 @@ public class SearchHandler implements HttpHandler {
                 }
             }
         }
-
-        sb.append("</body></html>");
-        return sb.toString();
     }
 
     private static String highlight(String escapedContent, String[] tokens) {

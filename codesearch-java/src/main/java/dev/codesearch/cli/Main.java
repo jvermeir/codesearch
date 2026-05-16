@@ -77,25 +77,8 @@ public class Main implements Callable<Integer> {
                 Set<String> currentPaths = ConcurrentHashMap.newKeySet();
 
                 pool.submit(progress::start);
-
-                String rootPrefix = root.toAbsolutePath().toString();
-                FileWalker.walkStreaming(root.toAbsolutePath(), path -> {
-                    String abs = path.toAbsolutePath().toString();
-                    currentPaths.add(abs);
-                    progress.fileScanned();
-                    pool.submit(() -> indexOne(store, path, progress));
-                });
-
-                progress.scanDone();
-                pool.shutdown();
-                pool.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
-
-                for (String stale : committedPaths) {
-                    if (stale.startsWith(rootPrefix) && !currentPaths.contains(stale)) {
-                        store.deleteByPath(stale);
-                    }
-                }
-
+                performIndexing(store, pool, progress, committedPaths, currentPaths);
+                cleanupStalePaths(store, progress, committedPaths, currentPaths);
                 progress.committing();
                 store.commit();
             } finally {
@@ -103,6 +86,34 @@ public class Main implements Callable<Integer> {
             }
 
             return 0;
+        }
+
+        private void performIndexing(
+            LuceneStore store, ExecutorService pool, ProgressReporter progress,
+            Set<String> committedPaths, Set<String> currentPaths
+        ) throws InterruptedException, IOException {
+            FileWalker.walkStreaming(root.toAbsolutePath(), path -> {
+                String abs = path.toAbsolutePath().toString();
+                currentPaths.add(abs);
+                progress.fileScanned();
+                pool.submit(() -> indexOne(store, path, progress));
+            });
+
+            progress.scanDone();
+            pool.shutdown();
+            pool.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+        }
+
+        private void cleanupStalePaths(
+            LuceneStore store, ProgressReporter progress,
+            Set<String> committedPaths, Set<String> currentPaths
+        ) throws IOException {
+            String rootPrefix = root.toAbsolutePath().toString();
+            for (String stale : committedPaths) {
+                if (stale.startsWith(rootPrefix) && !currentPaths.contains(stale)) {
+                    store.deleteByPath(stale);
+                }
+            }
         }
 
         private void indexOne(LuceneStore store, Path fpath, ProgressReporter progress) {
