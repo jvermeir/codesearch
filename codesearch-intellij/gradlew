@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Gradle wrapper script
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GRADLE_PROPERTIES="${SCRIPT_DIR}/gradle/wrapper/gradle-wrapper.properties"
+
+if [ ! -f "${GRADLE_PROPERTIES}" ]; then
+    echo "gradle-wrapper.properties not found!"
+    exit 1
+fi
+
+# Download and use Gradle
+exec gradle --no-daemon "$@"

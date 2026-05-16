@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<idea-plugin>
+    <id>dev.codesearch.intellij</id>
+    <name>CodeSearch</name>
+    <vendor email="jvermeir@xebia.com" url="https://github.com/janvermeir/codesearch">CodeSearch</vendor>
+    <description>Search plugin integrating codesearch-java for keyword-based code search within IntelliJ IDEA.</description>
+
+    <idea-version since-build="241" />
+
+
+    <actions>
+        <action id="CodeSearch.Search" class="dev.codesearch.intellij.actions.CodeSearchAction" text="CodeSearch" description="Search using CodeSearch">
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift x" />
+            <add-to-group group-id="EditMenu" anchor="last" />
+        </action>
+    </actions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <projectConfigurable parentId="tools" instance="dev.codesearch.intellij.settings.CodeSearchConfigurable" id="CodeSearch.Settings" displayName="CodeSearch" />
+        <projectService serviceInterface="dev.codesearch.intellij.settings.PluginSettings" serviceImplementation="dev.codesearch.intellij.settings.PluginSettingsImpl" />
+    </extensions>
+</idea-plugin>

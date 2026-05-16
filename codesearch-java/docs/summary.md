@@ -10,8 +10,8 @@ stack with a single self-contained fat-jar (~7 MB).
 
 ```
 codesearch-java/
-├── build.gradle                              Gradle + Shadow plugin (fat-jar)
-├── gradlew                                   Gradle 8.8 wrapper
+├── build.gradle                              Gradle custom fat-jar task
+├── gradlew                                   Gradle wrapper
 └── src/main/java/dev/codesearch/
     ├── store/LuceneStore.java                index lifecycle, CRUD, stats
     ├── indexer/FileWalker.java               directory traversal with skip-lists; streaming variant
@@ -184,13 +184,17 @@ Adding semantic search would require Lucene's `KnnVectorField` and an embedding 
 
 ### Fat-jar packaging
 
-The `com.github.johnrengelman.shadow` plugin bundles all dependencies into a single JAR:
+A custom Gradle `jar` task bundles all dependencies into a single JAR by collecting runtime classpath files
+and merging them into the output (excluding duplicate entries). The result is a self-contained fat-jar:
 
 ```
-build/libs/codesearch.jar   ~7 MB
+build/libs/codesearch.jar   ~7.2 MB
 ```
 
-The manifest sets `Multi-Release: true` to satisfy Lucene's multi-release JAR requirements.
+The manifest includes:
+- `Main-Class: dev.codesearch.cli.Main` — enables direct execution via `java -jar`
+- `Multi-Release: true` — satisfies Lucene's multi-release JAR requirements
+- `Add-Modules: jdk.incubator.vector` — enables SIMD optimizations on Java 21+
 
 ---
 
@@ -222,14 +226,19 @@ exec java --add-modules jdk.incubator.vector -jar "$(dirname "$0")/build/libs/co
 
 ## Build
 
-Requirements: Java 21+, no other local dependencies needed (Gradle wrapper downloads itself).
+Requirements: Java 21+, Gradle 8.8+ (or use system gradle if available).
 
 ```sh
 cd codesearch-java
-./gradlew shadowJar          # produces build/libs/codesearch.jar
-./codesearch.sh index <root>
-./codesearch.sh search "query"
+gradle build                 # produces build/libs/codesearch.jar
+# or
+./gradlew build              # if gradle wrapper is properly initialized
+
+java -jar build/libs/codesearch.jar index <root>
+java -jar build/libs/codesearch.jar search "query"
 ```
+
+The `codesearch.sh` wrapper script is provided for convenience but is optional.
 
 ### Dependencies (runtime)
 
@@ -291,3 +300,66 @@ To reimplement from scratch, build the components in this order:
 
 8. **`build.gradle`** — add Shadow plugin, set `mainClass`, add `--add-modules jdk.incubator.vector`
    to `applicationDefaultJvmArgs`, set `archiveBaseName` and `Multi-Release: true` in the manifest.
+
+---
+
+## IntelliJ Plugin Integration
+
+A lightweight IntelliJ IDEA plugin (`codesearch-intellij/`) provides IDE integration for search-only workflows.
+
+### Architecture
+
+The plugin calls the codesearch fat-jar as a subprocess to avoid bundling large dependencies:
+
+```
+User (Ctrl+Shift+X) → CodeSearchAction → SearchDialog → SearchService → subprocess
+                                                             ↓
+                                                      (java -jar codesearch.jar search)
+                                                             ↓
+                                                      ResultsPanel (UsageView)
+```
+
+### Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Action | `actions/CodeSearchAction.kt` | Menu entry point; orchestrates dialog and search |
+| Dialog | `ui/SearchDialog.kt` | Query input with threshold/max-per-file/doc-weight sliders |
+| Results | `ui/ResultsPanel.kt` | Display in IntelliJ's native UsageView for navigation |
+| Service | `search/SearchService.kt` | Subprocess manager; parses `path:start:end:score:content` output |
+| Settings | `settings/PluginSettings.kt` | Persists JAR path, index path, and default parameters |
+| Config UI | `settings/CodeSearchConfigurable.kt` | Settings page with validation and "Test Connection" |
+
+### Key Design Decisions
+
+- **Subprocess over embedding**: Keeps plugin lightweight (~100 KB); allows independent JAR updates.
+- **UsageView integration**: Reuses IntelliJ's native search UI for navigation, highlighting, pagination.
+- **Kotlin**: Standard for modern IntelliJ plugins; null-safety prevents crashes.
+- **Search-only MVP**: No indexing in the plugin; assumes an index already exists at `~/.codesearch/lucene-index/`.
+
+### Build & Install
+
+```bash
+# Build plugin
+cd codesearch-intellij && gradle build
+
+# Install in IntelliJ: Preferences → Plugins → Install Plugin from Disk
+# Select: build/distributions/codesearch-intellij-0.1.0.zip
+
+# Configure: Settings → Tools → CodeSearch
+# Set JAR path and index path, click "Test Connection"
+```
+
+### Usage
+
+1. Press **Ctrl+Shift+X** (or Tools → CodeSearch)
+2. Enter query; adjust threshold/max-per-file/doc-weight if needed
+3. Press Enter → results appear in UsageView
+4. Double-click a result → opens file at line number
+
+### Known Limitations
+
+- Search-only; no incremental indexing from within the IDE
+- Results sorted by score; no custom sorting
+- Limited result preview (first 60 characters of content)
+- No semantic/vector search (keyword-only, matching codesearch-java behavior)
