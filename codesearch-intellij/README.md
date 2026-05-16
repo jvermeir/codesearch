@@ -5,18 +5,18 @@ A simple search plugin for IntelliJ IDEA that integrates with codesearch-java fo
 ## Features
 
 - Search across your indexed codebase from within IntelliJ
-- Configurable search parameters (threshold, max results per file, etc.)
-- Results displayed in IntelliJ's native UsageView
-- Double-click to navigate to results with line numbers
+- Configurable search parameters (threshold, max results per file, doc weight)
+- Quick navigation to first result with summary count
+- Integrated with IntelliJ's file editor for seamless workflow
 
 ## Architecture
 
 The plugin uses a subprocess approach to call the codesearch fat-jar:
 
 - **Action**: Menu item (Tools → CodeSearch) or hotkey (Ctrl+Shift+X)
-- **Dialog**: Query input with configurable threshold, max-per-file, doc-weight
-- **Search Service**: Calls `java -jar codesearch.jar search <query>` and parses results
-- **Results**: Displayed in IntelliJ's native UsageView for integrated navigation
+- **Dialog**: Search query input with configurable threshold, max-per-file, and doc-weight sliders
+- **Search Service**: Calls `java -jar codesearch.jar search <query>` and parses JSON results
+- **Results**: Opens first result in editor and displays summary count in a message dialog
 
 ## Setup
 
@@ -37,16 +37,16 @@ cd codesearch-java
 
 ```bash
 cd codesearch-intellij
-gradle build
+./gradlew build
 ```
 
-This produces: `build/libs/codesearch-intellij-0.1.0.zip`
+This produces: `build/distributions/codesearch-intellij-0.1.0.zip`
 
 ### Install in IntelliJ
 
 1. Open IntelliJ IDEA
-2. Go to Preferences → Plugins → ⚙️ → Install Plugin from Disk
-3. Select `build/libs/codesearch-intellij-0.1.0.zip`
+2. Go to Settings → Plugins → ⚙️ → Install Plugin from Disk
+3. Select `build/distributions/codesearch-intellij-0.1.0.zip`
 4. Restart IntelliJ
 
 ### Configuration
@@ -62,22 +62,22 @@ After installation:
 
 1. Press `Ctrl+Shift+X` (or use Tools menu → CodeSearch)
 2. Enter your search query
-3. Adjust threshold, max-per-file, and doc-weight as needed
-4. Press Enter or click Search
-5. Results appear in a UsageView panel
-6. Double-click a result to open the file at that line
+3. Adjust threshold (fuzzy match score), max-per-file, and doc-weight as needed
+4. Click Search or press Enter
+5. The first result opens automatically in the editor
+6. A dialog shows the total count of matches found
 
 ## Files
 
 - `build.gradle` - Plugin build configuration
 - `src/main/kotlin/dev/codesearch/intellij/`
   - `actions/CodeSearchAction.kt` - Menu action entry point
-  - `ui/SearchDialog.kt` - Query input dialog
-  - `ui/ResultsPanel.kt` - Results display using UsageView
-  - `search/SearchService.kt` - Subprocess manager and parser
+  - `ui/SearchDialog.kt` - Query input dialog with threshold/doc-weight sliders
+  - `ui/ResultsPanel.kt` - Opens first result and shows summary dialog
+  - `search/SearchService.kt` - Subprocess manager for codesearch.jar calls
   - `search/SearchResult.kt` - Result data class
   - `settings/PluginSettings.kt` - Configuration persistence
-  - `settings/CodeSearchConfigurable.kt` - Settings UI
+  - `settings/CodeSearchConfigurable.kt` - Settings UI with JAR/index paths
 - `src/main/resources/META-INF/plugin.xml` - Plugin manifest
 
 ## Troubleshooting
@@ -97,14 +97,15 @@ After installation:
 ## Known Limitations
 
 - Search-only (no indexing from within the plugin)
-- Results always sorted by score (descending)
-- No semantic/vector search (keyword-only)
-- Limited result preview (first 60 characters of content)
+- Opens only the first result; to see others, re-run with different parameters
+- No semantic/vector search (fuzzy keyword matching only)
+- Requires external codesearch.jar and Lucene index setup
 
 ## Future Enhancements
 
+- Browse all results in a results panel instead of just the first match
 - Automatic incremental indexing on file changes
-- JSON output format for codesearch-java
-- Semantic search integration
-- Custom syntax highlighting in results
-- Project-specific index management
+- Semantic/vector search integration
+- Custom syntax highlighting for matched terms in editor
+- Built-in index management and status UI
+- Search history and saved searches

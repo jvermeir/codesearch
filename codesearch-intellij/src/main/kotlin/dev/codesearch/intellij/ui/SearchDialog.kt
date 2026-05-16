@@ -7,6 +7,7 @@ import com.intellij.ui.components.JBTextField
 import dev.codesearch.intellij.settings.PluginSettingsImpl
 import javax.swing.*
 import javax.swing.event.ChangeEvent
+import java.util.*
 
 class SearchDialog(
     project: Project?,
@@ -21,11 +22,11 @@ class SearchDialog(
         minorTickSpacing = 5
         majorTickSpacing = 10
         paintTicks = true
-        labelTable = Hashtable<Int, JLabel>().apply {
-            put(0, JLabel("0"))
-            put(50, JLabel("50"))
-            put(100, JLabel("100"))
-        }
+        val labels: Hashtable<Int, JLabel> = Hashtable()
+        labels[0] = JLabel("0")
+        labels[50] = JLabel("50")
+        labels[100] = JLabel("100")
+        labelTable = labels
         paintLabels = true
     }
     private val thresholdLabel = JLabel("Threshold: ${thresholdSlider.value}")

@@ -9,9 +9,9 @@
 
 
     <actions>
-        <action id="CodeSearch.Search" class="dev.codesearch.intellij.actions.CodeSearchAction" text="CodeSearch" description="Search using CodeSearch">
+        <action id="CodeSearch.Search" class="dev.codesearch.intellij.actions.CodeSearchAction" text="CodeSearch" description="Search codebase using CodeSearch">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift x" />
-            <add-to-group group-id="EditMenu" anchor="last" />
+            <add-to-group group-id="ToolsMenu" anchor="last" />
         </action>
     </actions>
 

@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
+import dev.codesearch.intellij.search.SearchService
 import javax.swing.*
 
 class CodeSearchConfigurable(private val project: Project) : Configurable {
