@@ -33,24 +33,40 @@ public final class FuzzySearcher {
         List<String> tokens = tokenize(store, query);
         if (tokens.isEmpty()) return Collections.emptyList();
 
-        BooleanQuery.Builder tokenQb = new BooleanQuery.Builder();
-        tokenQb.add(new TermQuery(new Term("kind", "chunk")), BooleanClause.Occur.FILTER);
+        float maxScore = getMaxScoreFromTokenQuery(searcher, tokens);
+        if (maxScore == 0) return Collections.emptyList();
+
+        Query rankedQuery = buildRankedQuery(tokens);
+        int luceneTopK = Math.min(topK * 10, 2000);
+        TopDocs hits = searcher.search(rankedQuery, luceneTopK);
+        if (hits.scoreDocs.length == 0) return Collections.emptyList();
+
+        List<SearchResult> results = processSearchResults(searcher, hits, maxScore, threshold, docWeight);
+        results.sort(Comparator.comparingDouble(SearchResult::score).reversed());
+        return results.subList(0, Math.min(topK, results.size()));
+    }
+
+    private static float getMaxScoreFromTokenQuery(IndexSearcher searcher, List<String> tokens) throws IOException {
+        BooleanQuery tokenQuery = buildTokenQuery(tokens);
+        TopDocs tokenHits = searcher.search(tokenQuery, 1);
+        if (tokenHits.scoreDocs.length == 0) return 0;
+        return tokenHits.scoreDocs[0].score;
+    }
+
+    private static BooleanQuery buildTokenQuery(List<String> tokens) {
+        BooleanQuery.Builder qb = new BooleanQuery.Builder();
+        qb.add(new TermQuery(new Term("kind", "chunk")), BooleanClause.Occur.FILTER);
         for (String token : tokens) {
             Query tq = token.length() <= 3
                 ? new TermQuery(new Term(CONTENT_FIELD, token))
                 : new FuzzyQuery(new Term(CONTENT_FIELD, token), 1, 1);
-            tokenQb.add(tq, BooleanClause.Occur.SHOULD);
+            qb.add(tq, BooleanClause.Occur.SHOULD);
         }
-        tokenQb.setMinimumNumberShouldMatch(1);
+        qb.setMinimumNumberShouldMatch(1);
+        return qb.build();
+    }
 
-        // Normalization baseline from token-only query so the phrase boost
-        // doesn't inflate maxScore and crush partial matches below threshold.
-        TopDocs tokenHits = searcher.search(tokenQb.build(), 1);
-        if (tokenHits.scoreDocs.length == 0) return Collections.emptyList();
-        float maxScore = tokenHits.scoreDocs[0].score;
-        if (maxScore == 0) return Collections.emptyList();
-
-        // Full query adds phrase boost for ordering — exact matches rank first.
+    private static Query buildRankedQuery(List<String> tokens) {
         BooleanQuery.Builder qb = new BooleanQuery.Builder();
         qb.add(new TermQuery(new Term("kind", "chunk")), BooleanClause.Occur.FILTER);
         for (String token : tokens) {
@@ -67,11 +83,12 @@ public final class FuzzySearcher {
             }
             qb.add(new BoostQuery(pb.build(), tokens.size()), BooleanClause.Occur.SHOULD);
         }
+        return qb.build();
+    }
 
-        int luceneTopK = Math.min(topK * 10, 2000);
-        TopDocs hits = searcher.search(qb.build(), luceneTopK);
-        if (hits.scoreDocs.length == 0) return Collections.emptyList();
-
+    private static List<SearchResult> processSearchResults(
+        IndexSearcher searcher, TopDocs hits, float maxScore, int threshold, double docWeight
+    ) throws IOException {
         double thresholdNorm = threshold / 100.0;
         List<SearchResult> results = new ArrayList<>();
         StoredFields sf = searcher.storedFields();
@@ -91,9 +108,7 @@ public final class FuzzySearcher {
                 ft
             ));
         }
-
-        results.sort(Comparator.comparingDouble(SearchResult::score).reversed());
-        return results.subList(0, Math.min(topK, results.size()));
+        return results;
     }
 
     private FuzzySearcher() {

@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'application'
-    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    // id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 group = 'dev.codesearch'
@@ -36,12 +36,12 @@ compileJava {
     options.compilerArgs += ['-Aproject=dev.codesearch/codesearch-java']
 }
 
-shadowJar {
-    archiveBaseName = 'codesearch'
-    archiveClassifier = ''
-    archiveVersion = ''
-    mergeServiceFiles()
-    manifest {
-        attributes 'Multi-Release': 'true'
-    }
-}
+// shadowJar {
+//     archiveBaseName = 'codesearch'
+//     archiveClassifier = ''
+//     archiveVersion = ''
+//     mergeServiceFiles()
+//     manifest {
+//         attributes 'Multi-Release': 'true'
+//     }
+// }
