@@ -78,7 +78,7 @@ class PluginSettingsImpl : PluginSettings, PersistentStateComponent<PluginSettin
             !dir.exists() -> "Index directory not found: $path"
             !dir.isDirectory -> "Not a directory: $path"
             !dir.canRead() -> "Cannot read: $path"
-            !File(dir, "segments.gen").exists() -> "Not a valid Lucene index (no segments.gen): $path"
+            dir.listFiles { f -> f.name.startsWith("segments_") }?.isEmpty() != false -> "Not a valid Lucene index (no segment files): $path"
             else -> null
         }
     }

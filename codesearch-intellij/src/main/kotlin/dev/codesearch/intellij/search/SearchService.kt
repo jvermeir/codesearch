@@ -47,8 +47,11 @@ class SearchService(private val project: Project) {
         maxPerFile: Int,
         docWeight: Double
     ): List<SearchResult> {
+        val javaHome = System.getProperty("java.home")
+        val javaExe = File(javaHome, "bin/java").absolutePath
+
         val command = listOf(
-            "java",
+            javaExe,
             "-jar", settings.codesearchJarPath,
             "--db", settings.indexPath,
             "search", query,
